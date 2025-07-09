@@ -15,9 +15,9 @@ A comprehensive travel recommendation system that provides real-time weather dat
 ### Prerequisites
 - Python 3.8+
 - API keys for:
-  - [WeatherAPI](https://www.weatherapi.com/) (Free tier available)
-  - [Aviationstack](https://aviationstack.com/) (Free tier available)
-  - [NewsAPI](https://newsapi.org/) (Free tier available)
+  - [WeatherAPI](https://www.weatherapi.com/) 
+  - [Aviationstack](https://aviationstack.com/)   
+  - [NewsAPI](https://newsapi.org/) 
 
 ### Installation
 
@@ -32,8 +32,6 @@ A comprehensive travel recommendation system that provides real-time weather dat
    python -m venv venv
    # On Windows:
    venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
    ```
 
 3. **Install dependencies**
@@ -43,8 +41,7 @@ A comprehensive travel recommendation system that provides real-time weather dat
 
 4. **Set up environment variables**
    ```bash
-   cp .env.example .env
-   # Edit .env with your API keys
+   cp .env
    ```
 
 5. **Run the server**
@@ -222,10 +219,6 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## 🙏 Acknowledgments
 
 - [WeatherAPI](https://www.weatherapi.com/) for weather data
@@ -235,6 +228,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-For support, email support@smarttravelplanner.com or create an issue in this repository.
+For support, email nick.iversonnn@gmail.com or create an issue in this repository.
 
 
