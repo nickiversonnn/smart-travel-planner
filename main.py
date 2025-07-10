@@ -31,7 +31,7 @@ class WeatherResponse(BaseModel):
     location: Optional[Dict[str, Any]]
     current: Optional[Dict[str, Any]]
     weather_score: Optional[int]
-    error: Optional[str]
+    error: Optional[str] = None
     status: str
 
 class SafetyResponse(BaseModel):
@@ -39,14 +39,14 @@ class SafetyResponse(BaseModel):
     risk_level: Optional[str]
     articles_count: Optional[int]
     recent_articles: Optional[list]
-    error: Optional[str]
+    error: Optional[str] = None
     status: str
 
 class FlightResponse(BaseModel):
     flights: Optional[list]
     total_flights: Optional[int]
     availability_score: Optional[int]
-    error: Optional[str]
+    error: Optional[str] = None
     status: str
 
 class RecommendationResponse(BaseModel):
@@ -173,7 +173,8 @@ def recommend(city: str = Query(..., description="City name for travel recommend
         "safety": {
             "safety_score": safety_data.get("safety_score", 0),
             "risk_level": safety_data.get("risk_level", "Unknown"),
-            "articles_count": safety_data.get("articles_count", 0)
+            "articles_count": safety_data.get("articles_count", 0),
+            "recent_articles": safety_data.get("recent_articles", [])
         },
         "flights": {
             "total_flights": flight_data.get("total_flights", 0),

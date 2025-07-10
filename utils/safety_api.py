@@ -21,54 +21,36 @@ def get_safety(city: str) -> Dict[str, Any]:
         }
     
     try:
-        # Search for crime-related news in the city
-        crime_keywords = [
-            f"{city} crime",
-            f"{city} theft", 
-            f"{city} violence",
-            f"{city} assault",
-            f"{city} robbery",
-            f"{city} shooting"
-        ]
+        url = "https://newsapi.org/v2/everything"
+        params = {
+            "q": f"{city} crime OR theft OR violence",
+            "language": "en",
+            "pageSize": 10,
+            "apiKey": api_key
+        }
+        resp = requests.get(url, params=params)
+        articles = resp.json().get("articles", [])
         
-        total_articles = 0
-        recent_articles = []
+        # Filter and process articles
+        relevant_articles = []
+        for article in articles:
+            if is_relevant_safety_article(article, city):
+                relevant_articles.append({
+                    "title": article.get("title"),
+                    "description": article.get("description"),
+                    "publishedAt": article.get("publishedAt"),
+                    "url": article.get("url")
+                })
         
-        for keyword in crime_keywords:
-            url = "https://newsapi.org/v2/everything"
-            params = {
-                "q": keyword,
-                "language": "en",
-                "pageSize": 5,
-                "sortBy": "publishedAt",
-                "apiKey": api_key
-            }
-            
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            
-            data = response.json()
-            articles = data.get("articles", [])
-            total_articles += len(articles)
-            
-            # Collect recent articles for analysis
-            for article in articles:
-                if article.get("title") and article.get("description"):
-                    recent_articles.append({
-                        "title": article.get("title"),
-                        "description": article.get("description"),
-                        "publishedAt": article.get("publishedAt")
-                    })
-        
-        # Calculate safety score
-        safety_score = calculate_safety_score(total_articles, recent_articles)
+        # Calculate safety score based on relevant articles
+        safety_score = calculate_safety_score(len(relevant_articles), relevant_articles)
         risk_level = get_risk_level(safety_score)
         
         return {
             "safety_score": safety_score,
             "risk_level": risk_level,
-            "articles_count": total_articles,
-            "recent_articles": recent_articles[:3],  # Top 3 most recent
+            "articles_count": len(relevant_articles),
+            "recent_articles": relevant_articles[:3],  # Top 3 most recent
             "status": "success"
         }
         
@@ -82,6 +64,54 @@ def get_safety(city: str) -> Dict[str, Any]:
             "error": f"Unexpected error: {str(e)}",
             "status": "error"
         }
+
+def is_relevant_safety_article(article: Dict[str, Any], city: str) -> bool:
+    """
+    Check if an article is relevant to safety/crime in the specified city.
+    
+    Args:
+        article: Article data from NewsAPI
+        city: City name to check against
+        
+    Returns:
+        True if article is relevant to safety/crime
+    """
+    title = article.get("title", "") or ""
+    description = article.get("description", "") or ""
+    title = title.lower()
+    description = description.lower()
+    content = f"{title} {description}"
+    
+    # Must contain the city name (or a variation)
+    city_variations = [city.lower(), city.split(',')[0].lower().strip()]
+    if not any(city_var in content for city_var in city_variations):
+        return False
+    
+    # Must contain crime/safety related keywords
+    crime_keywords = [
+        "crime", "theft", "robbery", "assault", "shooting", "murder", 
+        "homicide", "violence", "burglary", "vandalism", "arrest", 
+        "police", "investigation", "incident", "attack", "stabbing",
+        "domestic violence", "sexual assault", "kidnapping", "fraud",
+        "law enforcement", "officer", "suspect", "victim"
+    ]
+    
+    if not any(keyword in content for keyword in crime_keywords):
+        return False
+    
+    # Exclude irrelevant topics
+    irrelevant_keywords = [
+        "music", "album", "concert", "tour", "sports", "game", "team",
+        "movie", "film", "actor", "actress", "celebrity", "entertainment",
+        "technology", "gadget", "product", "review", "shopping", "sale",
+        "business", "company", "stock", "market", "finance", "economy",
+        "politics", "election", "campaign", "government", "policy"
+    ]
+    
+    if any(keyword in content for keyword in irrelevant_keywords):
+        return False
+    
+    return True
 
 def calculate_safety_score(article_count: int, articles: List[Dict[str, Any]]) -> int:
     """
@@ -131,16 +161,18 @@ def analyze_article_severity(articles: List[Dict[str, Any]]) -> int:
         Severity adjustment (-10 to +10)
     """
     severity_keywords = {
-        "high": ["shooting", "murder", "homicide", "terrorism", "bomb"],
-        "medium": ["assault", "robbery", "theft", "burglary"],
-        "low": ["vandalism", "dispute", "argument"]
+        "high": ["shooting", "murder", "homicide", "terrorism", "bomb", "stabbing", "kidnapping"],
+        "medium": ["assault", "robbery", "theft", "burglary", "domestic violence", "sexual assault"],
+        "low": ["vandalism", "dispute", "argument", "fraud", "theft"]
     }
     
     total_adjustment = 0
     
     for article in articles:
-        title = article.get("title", "").lower()
-        description = article.get("description", "").lower()
+        title = article.get("title", "") or ""
+        description = article.get("description", "") or ""
+        title = title.lower()
+        description = description.lower()
         text = f"{title} {description}"
         
         # Check for high severity keywords

@@ -30,8 +30,6 @@ A comprehensive travel recommendation system that provides real-time weather dat
 2. **Create virtual environment**
    ```bash
    python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
    ```
 
 3. **Install dependencies**

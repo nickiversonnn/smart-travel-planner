@@ -36,6 +36,8 @@ def get_weather(city: str) -> Dict[str, Any]:
         # Add weather score calculation
         weather_score = calculate_weather_score(data)
         data["weather_score"] = weather_score
+        data["error"] = None
+        data["status"] = "success"
         
         return data
         

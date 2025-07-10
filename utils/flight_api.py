@@ -28,30 +28,52 @@ def get_flights(city: str) -> Dict[str, Any]:
             "limit": 10,
             "arr_city": city
         }
+
+        resp = requests.get(url, params=params)
+        data = resp.json().get("data", [])
         
-        response = requests.get(url, params=params, timeout=15)
-        response.raise_for_status()
-        
-        data = response.json()
-        
-        # Check for API errors
-        if "error" in data:
-            return {
-                "error": f"Aviationstack API error: {data['error'].get('message', 'Unknown error')}",
-                "status": "error"
+        # Process and enhance flight data
+        enhanced_flights = []
+        for flight in data:
+            # Safely extract nested data with null checks
+            airline = flight.get("airline", {}) or {}
+            flight_info = flight.get("flight", {}) or {}
+            departure = flight.get("departure", {}) or {}
+            arrival = flight.get("arrival", {}) or {}
+            aircraft = flight.get("aircraft", {}) or {}
+            
+            enhanced_flight = {
+                "airline": {
+                    "name": airline.get("name", "Unknown Airline"),
+                    "iata": airline.get("iata", "")
+                },
+                "flight": {
+                    "number": flight_info.get("iata", ""),
+                    "number_full": flight_info.get("number", "")
+                },
+                "departure": {
+                    "airport": departure.get("airport", "Unknown"),
+                    "iata": departure.get("iata", ""),
+                    "scheduled": format_time(departure.get("scheduled", "")),
+                    "delay": departure.get("delay", 0)
+                },
+                "arrival": {
+                    "airport": arrival.get("airport", "Unknown"),
+                    "iata": arrival.get("iata", ""),
+                    "scheduled": format_time(arrival.get("scheduled", "")),
+                    "delay": arrival.get("delay", 0)
+                },
+                "aircraft": aircraft.get("icao24", ""),
+                "status": flight.get("flight_status", "unknown")
             }
-        
-        flights_data = data.get("data", [])
-        
-        # Process and simplify flight data
-        simplified_flights = process_flights(flights_data)
-        
-        # Calculate flight availability score
-        availability_score = calculate_availability_score(simplified_flights)
-        
+            enhanced_flights.append(enhanced_flight)
+
+        # Calculate availability score
+        availability_score = calculate_availability_score(enhanced_flights)
+
         return {
-            "flights": simplified_flights,
-            "total_flights": len(simplified_flights),
+            "flights": enhanced_flights,
+            "total_flights": len(enhanced_flights),
             "availability_score": availability_score,
             "status": "success"
         }
@@ -66,88 +88,6 @@ def get_flights(city: str) -> Dict[str, Any]:
             "error": f"Unexpected error: {str(e)}",
             "status": "error"
         }
-
-def process_flights(flights_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Process and simplify flight data from Aviationstack API.
-    
-    Args:
-        flights_data: Raw flight data from API
-        
-    Returns:
-        List of simplified flight information
-    """
-    simplified = []
-    
-    for flight in flights_data:
-        try:
-            # Extract airline information
-            airline = flight.get("airline", {})
-            airline_name = airline.get("name", "Unknown Airline")
-            airline_iata = airline.get("iata", "")
-            
-            # Extract flight information
-            flight_info = flight.get("flight", {})
-            flight_number = flight_info.get("iata", "")
-            flight_number_full = flight_info.get("number", "")
-            
-            # Extract departure information
-            departure = flight.get("departure", {})
-            departure_airport = departure.get("airport", "Unknown")
-            departure_iata = departure.get("iata", "")
-            departure_time = departure.get("scheduled", "")
-            departure_delay = departure.get("delay", 0)
-            
-            # Extract arrival information
-            arrival = flight.get("arrival", {})
-            arrival_airport = arrival.get("airport", "Unknown")
-            arrival_iata = arrival.get("iata", "")
-            arrival_time = arrival.get("scheduled", "")
-            arrival_delay = arrival.get("delay", 0)
-            
-            # Extract aircraft information
-            aircraft = flight.get("aircraft", {})
-            aircraft_type = aircraft.get("icao24", "")
-            
-            # Extract flight status
-            flight_status = flight.get("flight_status", "unknown")
-            
-            # Format times if available
-            departure_time_formatted = format_time(departure_time)
-            arrival_time_formatted = format_time(arrival_time)
-            
-            simplified_flight = {
-                "airline": {
-                    "name": airline_name,
-                    "iata": airline_iata
-                },
-                "flight": {
-                    "number": flight_number,
-                    "number_full": flight_number_full
-                },
-                "departure": {
-                    "airport": departure_airport,
-                    "iata": departure_iata,
-                    "scheduled": departure_time_formatted,
-                    "delay": departure_delay
-                },
-                "arrival": {
-                    "airport": arrival_airport,
-                    "iata": arrival_iata,
-                    "scheduled": arrival_time_formatted,
-                    "delay": arrival_delay
-                },
-                "aircraft": aircraft_type,
-                "status": flight_status
-            }
-            
-            simplified.append(simplified_flight)
-            
-        except Exception as e:
-            # Skip flights with processing errors
-            continue
-    
-    return simplified
 
 def format_time(time_str: str) -> str:
     """
@@ -196,8 +136,9 @@ def calculate_availability_score(flights: List[Dict[str, Any]]) -> int:
     # Variety score (different airlines)
     airlines = set()
     for flight in flights:
-        airline_name = flight.get("airline", {}).get("name", "")
-        if airline_name:
+        airline = flight.get("airline", {}) or {}
+        airline_name = airline.get("name", "")
+        if airline_name and airline_name != "Unknown Airline":
             airlines.add(airline_name)
     
     variety_score = min(30, len(airlines) * 5)
