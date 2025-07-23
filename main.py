@@ -83,14 +83,14 @@ def weather(city: str = Query(..., description="City name to fetch weather for",
     return data
 
 @app.get("/flights", response_model=FlightResponse, tags=["Flights"])
-def flights(iata: str = Query(..., description="IATA code to get flights for", min_length=3, max_length=3)):
+def flights(city: str = Query(..., description="City name to get flights for", min_length=1)):
     """
-    Get available flights to an airport by IATA code.
-    - **iata**: IATA code of the airport
+    Get available flights to an airport by city name.
+    - **city**: Name of the city to assess flights for
     """
-    if not iata.strip() or len(iata.strip()) != 3:
-        raise HTTPException(status_code=400, detail="IATA code must be 3 letters")
-    data = get_flights(iata.strip().upper())
+    if not city.strip():
+        raise HTTPException(status_code=400, detail="City name cannot be empty")
+    data = get_flights(city.strip().upper())
     if data.get("status") == "error":
         raise HTTPException(status_code=500, detail=data.get("error", "Flight data unavailable"))
     return data

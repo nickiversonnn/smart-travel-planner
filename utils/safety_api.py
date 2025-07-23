@@ -28,7 +28,7 @@ def get_safety(city: str) -> Dict[str, Any]:
         data = resp.json()
         articles = data.get("articles", [])
         total_count = len(articles)
-        score = max(0, 100 - 20 * math.log1p(total_count))
+        score = max(0, 100 - 13 * math.log1p(total_count))
         score = round(score)
         return {
             "safety_score": score,
