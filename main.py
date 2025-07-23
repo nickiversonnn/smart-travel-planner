@@ -35,11 +35,8 @@ class WeatherResponse(BaseModel):
     status: str
 
 class SafetyResponse(BaseModel):
-    safety_score: Optional[int]
-    risk_level: Optional[str]
-    articles_count: Optional[int]
-    recent_articles: Optional[list]
-    error: Optional[str] = None
+    safety_score: int
+    articles: int
     status: str
 
 class FlightResponse(BaseModel):
@@ -86,20 +83,16 @@ def weather(city: str = Query(..., description="City name to fetch weather for",
     return data
 
 @app.get("/flights", response_model=FlightResponse, tags=["Flights"])
-def flights(city: str = Query(..., description="City name to get flights for", min_length=1)):
+def flights(iata: str = Query(..., description="IATA code to get flights for", min_length=3, max_length=3)):
     """
-    Get available flights to a city.
-    
-    - **city**: Name of the city to get flights for
+    Get available flights to an airport by IATA code.
+    - **iata**: IATA code of the airport
     """
-    if not city.strip():
-        raise HTTPException(status_code=400, detail="City name cannot be empty")
-    
-    data = get_flights(city.strip())
-    
+    if not iata.strip() or len(iata.strip()) != 3:
+        raise HTTPException(status_code=400, detail="IATA code must be 3 letters")
+    data = get_flights(iata.strip().upper())
     if data.get("status") == "error":
         raise HTTPException(status_code=500, detail=data.get("error", "Flight data unavailable"))
-    
     return data
 
 @app.get("/safety", response_model=SafetyResponse, tags=["Safety"])
