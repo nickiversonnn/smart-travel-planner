@@ -1,6 +1,8 @@
 import os
 import requests
+import math
 from typing import Dict, Any
+from datetime import datetime, timedelta
 
 def get_safety(city: str) -> Dict[str, Any]:
     api_key = os.getenv("NEWS_API_KEY")
@@ -11,18 +13,26 @@ def get_safety(city: str) -> Dict[str, Any]:
         }
     try:
         url = "https://newsapi.org/v2/everything"
+        today = datetime.utcnow().date()
+        first_day = today - timedelta(days=1)
         params = {
             "q": f"{city} crime OR theft OR violence",
             "language": "en",
             "pageSize": 100,
-            "apiKey": api_key
+            "apiKey": api_key,
+            "from": first_day.isoformat(),
+            "to": today.isoformat(),
+            "page": 1
         }
         resp = requests.get(url, params=params)
-        count = len(resp.json().get("articles", []))
-        score = max(0, 100 - count)
+        data = resp.json()
+        articles = data.get("articles", [])
+        total_count = len(articles)
+        score = max(0, 100 - 20 * math.log1p(total_count))
+        score = round(score)
         return {
             "safety_score": score,
-            "articles": count,
+            "articles": total_count,
             "status": "success"
         }
     except requests.exceptions.RequestException as e:
